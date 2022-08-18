@@ -1,9 +1,14 @@
 package main
 
 import (
+	"bytes"
 	"fmt"
+	"image/png"
 	"net/http"
 	"os"
+	"time"
+
+	"github.com/aofei/cameron"
 )
 
 func check(e error) {
@@ -12,22 +17,19 @@ func check(e error) {
 	}
 }
 
-func writeDataToFile() {
-	f, err := os.Create("/tmp/dat1")
+func generateImage(w http.ResponseWriter, req *http.Request) {
+	// instead of writing buffer to the filesystem, it might be better to keep it in memory and send directly to IPFS service
+	buf := bytes.Buffer{}
+    png.Encode(&buf, cameron.Identicon([]byte(req.RequestURI), 540, 60))
+    w.Header().Set("Content-Type", "image/png")
+
+	filename := fmt.Sprintf("%s%d%s", "./images/dat", time.Now().Unix(), ".png")
+	f, err := os.Create(filename)
 	check(err)
 
 	defer f.Close()
-
-	d1 := []byte{115, 111, 109, 101, 10}
-	n1, err := f.Write(d1)
-	check(err)
-	fmt.Printf("wrote %d bytes\n", n1)
-	f.Sync()
-}
-
-func generateImage(w http.ResponseWriter, req *http.Request) {
-	writeDataToFile()
-	fmt.Fprintf(w, "Hello from image gen\n")
+	buf.WriteTo(f)
+	fmt.Fprintf(w, "image generated successfully\n")
 }
 
 func main() {
